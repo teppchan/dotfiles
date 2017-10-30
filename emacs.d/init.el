@@ -9,13 +9,6 @@
   (setq user-emacs-directory (file-name-directory load-file-name)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; cask
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (require 'cask "~/.cask/cask.el")
-;; (cask-initialize)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; el-get
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;http://tarao.hatenablog.com/entry/20150221/1424518030
@@ -36,7 +29,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-;(add-to-list 'package-archives '("melpa-stable" . "https://melpa.org/packages/") t)
 (package-initialize)
 
 
@@ -62,6 +54,9 @@
 
 (setq mouse-drag-copy-region t) ;; マウスで選択するとコピーする
 (tool-bar-mode 0) ;;toolbarがでない
+
+;;シンボリックリンクをたどって元のパスに展開する
+(setq-default find-file-visit-truename t)
 
 ;;;http://meadow-faq.sourceforge.net/meadow-faq-ja_4.html#SEC78
 ;; 一行ずつスクロール
@@ -94,6 +89,9 @@
 (global-hl-line-mode t) ;;現在行をハイライト
 (transient-mark-mode t) ;;選択範囲をハイライト
 
+;;http://d.hatena.ne.jp/hnw/20140115
+ (add-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p)
+
 (use-package whitespace
   :config
   (progn
@@ -117,22 +115,10 @@
 (define-key isearch-mode-map "\C-d" 'isearch-yank-char)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Anthy
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (load-library "anthy")
-;; (setq default-input-method "japanese-anthy")
-;; (autoload 'boiling-rK-trans "boiling-anthy" "romaji-kanji conversion" t)
-;; (autoload 'boiling-rhkR-trans "boiling-anthy" "romaji-kana conversion" t)
-;; (global-set-key "\C-t" 'boiling-rK-trans)
-;; (global-set-key "\M-t" 'boiling-rhkR-trans)
-;; (if (>= emacs-major-version 22)
-;;     (setq anthy-accept-timeout 1))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; SKK
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (el-get-bundle ddskk)
-(setq skk-tut-file "/home/teppei/.emacs.d/el-get/ddskk/etc/SKK.tut")
+(setq skk-tut-file "~/.emacs.d/el-get/ddskk/etc/SKK.tut")
 (use-package skk
   :bind (("C-x C-j" . skk-mode)
          ("C-\\"    . skk-mode))
@@ -152,7 +138,7 @@
 ;; migemo
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (el-get-bundle migemo)
-(setq migemo-dictionary       "/home/teppei/usr/share/migemo/utf-8/migemo-dict")
+(setq migemo-dictionary       "~/usr/share/migemo/utf-8/migemo-dict")
 (setq migemo-command          "cmigemo")
 (setq migemo-options          '("-q" "--emacs"))
 (setq migemo-user-dictionary  nil)
@@ -188,9 +174,6 @@
   :config
   (global-undo-tree-mode t)
   )
-;; (require 'undo-tree)
-;; (global-undo-tree-mode t)
-;; (global-set-key (kbd "M-/") 'undo-tree-redo)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Verilog
@@ -214,33 +197,33 @@
       verilog-auto-endcomments         t
       verilog-minimum-comment-distance 40
       verilog-indent-begin-after-if    t
-      verilog-auto-lineup              'declarations
+;      verilog-auto-lineup              'declarations
+      verilog-auto-lineup              nil
       verilog-highlight-p1800-keywords nil
 ;      verilog-linter                   "my_lint_shell_command"
       )
 
 
+(defun toggle-verilog-auto-lineup ()
+  "toggle verilog-auto-lineup"
+  (interactive)
+  (setq verilog-auto-lineup
+   (case verilog-auto-lineup
+    ('declarations 'nil)
+    ('nil 'declarations)))
+  (message "verilog-auto-lineup: %s" verilog-auto-lineup)
+  )
+
+;;(bind-key "C-c C-0" 'toggle-verilog-auto-lineup)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; helm
+;; STIL
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (require 'helm-config)
-;; (helm-mode 1)
-;; (helm-migemo-mode 1)
-
-;; ;; C-hで前の文字削除
-;; (define-key helm-map (kbd "C-h") 'delete-backward-char)
-;; (define-key helm-find-files-map (kbd "C-h") 'delete-backward-char)
-
-;; (require 'helm-Ag)
-;; (setq helm-ag-base-command "ag --nocolor --nogrou")
-;; (global-set-key (kbd "C-c s") 'helm-ag)
-
-;; ;; キーバインド
-;; ;;(define-key global-map (kbd "C-x b")   'helm-buffers-list)
-;; (define-key global-map (kbd "C-x b") 'helm-for-files)
-;; (define-key global-map (kbd "C-x C-f") 'helm-find-files)
-;; (define-key global-map (kbd "M-x")     'helm-M-x)
-;; (define-key global-map (kbd "M-y")     'helm-show-kill-ring)
+(use-package stil-mode
+  :config
+  (setq auto-mode-alist (nconc '(("\\.stil$" . stil-mode)) auto-mode-alist))
+  (add-hook 'stil-mode-hook 'turn-on-font-lock)
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; auto-save-buffers-enhanced
@@ -309,6 +292,58 @@
     (setq comment-dwim-2--inline-comment-behavior 'reindent-comment) ;;2回目のM-;で、コメントをインデントする
     ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; auto-complete
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;http://keisanbutsuriya.hateblo.jp/entry/2015/02/08/175005
+;;http://dev.ariel-networks.com/wp/documents/aritcles/emacs/part9
+
+;; (el-get-bundle auto-complete)
+;; (ac-config-default)
+;; (setq ac-use-menu-map t) ;;補完メニュー表示時に、C-n/C-pで補完候補選択
+;; (ac-set-trigger-key "TAB")     ;;自分のタイミングで補完開始
+
+;; ;;自動的に有効にならないモードを追加する
+;; (add-to-list 'ac-modes 'text-mode)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; company
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;http://qiita.com/sune2/items/b73037f9e85962f5afb7
+
+(el-get-bundle company)
+(use-package company
+  :config
+  (global-company-mode))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; tail
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;https://www.emacswiki.org/emacs/TailEl
+;;http://dev.ariel-networks.com/wp/documents/aritcles/emacs/part11
+;(require 'tail)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; itail
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;http://emacs.rubikitch.com/itail/
+(el-get-bundle itail)
+(use-package itail
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; go
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(el-get-bundle go)
+(el-get-bundle company-go)
+(use-package go
+  :mode
+  (("\\.go" . go-mode))
+  )
+
+(add-to-list 'exec-path (expand-file-name "~/usr/go/bin/"))
+(use-package company-go)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フォントとウィンドウサイズ
@@ -318,7 +353,8 @@
                '(width . 100)
                '(height . 48)
                '(top . 30)
-               '(left . 2000)
+               ;'(left . 2000)
+               '(left . 20)
                )
               initial-frame-alist))
 (setq default-frame-alist initial-frame-alist)
@@ -333,10 +369,11 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (comment-dwim-2 auto-save-buffers-enhanced bind-key))))
+    (emojify mastodon company-go company go itail comment-dwim-2 auto-save-buffers-enhanced bind-key))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+(put 'upcase-region 'disabled nil)

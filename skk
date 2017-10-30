@@ -1,0 +1,29 @@
+;;-*- mode:lisp -*-
+
+;;送り仮名が厳密に正しい候補を優先して表示
+(setq skk-henkan-strict-okuri-precedence t)
+
+;;漢字登録畤、送り仮名が厳密に正しいかをチェック
+(setq skk-check-okurigana-on-touroku t)
+
+;; 各種メッセージを日本語で通知する
+(setq skk-japanese-message-and-error t)
+
+;; 変換の学習
+(require 'skk-study)
+
+;;変換時に注釈(annotation)を表示する
+(setq skk-show-annotation t)
+
+;; 注釈を表示するまでの遅延を秒で指定する
+(setq skk-annotation-delay 0.5)     ;デフォルトは1.0秒
+
+;; 注釈 (annotation) の表示の仕方
+;;   Non-nil => エコーエリアに表示する (デフォルト)
+;;   nil => 別な window に表示する
+;;(setq skk-annotation-show-as-message nil) ;skk-show-tooltipが優先される
+;; 対応する閉括弧を自動的に挿入する
+(setq skk-auto-insert-paren t)
+
+;; 動的補完
+(setq skk-dcomp-activate t)

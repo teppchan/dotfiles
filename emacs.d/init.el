@@ -114,6 +114,13 @@
      (buffer-substring (point) (1+ (point))))))
 (define-key isearch-mode-map "\C-d" 'isearch-yank-char)
 
+;; Default encoding
+(set-default-coding-systems 'utf-8)
+(set-buffer-file-coding-system 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; SKK
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -138,7 +145,8 @@
 ;; migemo
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (el-get-bundle migemo)
-(setq migemo-dictionary       "~/usr/share/migemo/utf-8/migemo-dict")
+;(setq migemo-dictionary       "~/usr/share/migemo/utf-8/migemo-dict")
+(setq migemo-dictionary       "~/.linuxbrew/share/migemo/utf-8/migemo-dict")
 (setq migemo-command          "cmigemo")
 (setq migemo-options          '("-q" "--emacs"))
 (setq migemo-user-dictionary  nil)
@@ -346,6 +354,34 @@
 (use-package company-go)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Graphvis
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(el-get-bundle graphviz-dot-mode)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Markdown
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(el-get-bundle elpa:markdown-mode)
+(use-package markdown-mode
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'"       . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :config
+  (setq markdown-command "pandoc -s --self-contained -t html5 -c /home/teppei/.pandoc/github.css")
+  ;;(setq markdown-command "pandoc -s --self-contained -t html5 -c https://gist.github.com/andyferra/2554919.js")
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; linum-mode
+;; http://d.hatena.ne.jp/tm_tn/20110605/1307238416
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(el-get-bundle elpa:hlinum)
+
+;; M-x linum-mode
+;; で、左に行番号を表示する。
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フォントとウィンドウサイズ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (setq initial-frame-alist
@@ -361,7 +397,6 @@
 
 (add-to-list 'default-frame-alist '(font . "Source Han Code JP N-10"))
 
-
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -369,11 +404,11 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (emojify mastodon company-go company go itail comment-dwim-2 auto-save-buffers-enhanced bind-key))))
+    (markdown-mode itail go company-go comment-dwim-2 bind-key auto-save-buffers-enhanced))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
-(put 'upcase-region 'disabled nil)
+ '(markdown-code-face ((t (:family "Source Han Code JP N-10"))))
+ '(markdown-pre-face ((t (:family "Source Han Code JP N-10")))))

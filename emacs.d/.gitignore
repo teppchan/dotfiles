@@ -49,4 +49,6 @@ flycheck_*.el
 # directory configuration
 .dir-locals.el
 
+network-security.data
 
+/bak/

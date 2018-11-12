@@ -3,13 +3,30 @@
 #グループwも許可
 umask 002
 
+[[ $TERM == "tramp" ]] && unsetopt zle && PS1='$ ' && return
+
+if [[ "$TERM" == "dumb" ]]
+then
+    unsetopt zle
+    unsetopt prompt_cr
+    unsetopt prompt_subst
+    if whence -w precmd >/dev/null; then
+        unfunction precmd
+    fi
+    if whence -w preexec >/dev/null; then
+        unfunction preexec
+    fi
+    PS1='$ '
+    return
+fi
+
+
 export ZPLUG_HOME=~/.zplug
 if [[ ! -d ~/.zplug ]]; then
    git clone https://github.com/zplug/zplug $ZPLUG_HOME
 fi
 
 source ${ZPLUG_HOME}/init.zsh
-
 zplug "zplug/zplug", hook-build: 'zplug --self-manage'
 
 #https://qiita.com/Iwark/items/f6ba765473dae03827e6
@@ -81,7 +98,9 @@ bindkey  "^N" down-line-or-beginning-search
 # Path
 ########################################
 export PATH=/usr/bin:/usr/sbin:/bin:/sbin
-export PATH=${HOME}/usr/bin:$PATH
+export PATH=${HOME}/usr/bin:${PATH}
+export PATH=${HOME}/usr/emacs26/bin:${PATH}
+export PATH=${HOME}/usr/fvwm/bin:${PATH}
 export PATH=${HOME}/mybin:$PATH
 export MANPATH=${HOME}/usr/share/man:/usr/share/man
 
@@ -90,6 +109,8 @@ if [[ -d ~/.linuxbrew ]] then
    export PATH="$HOME/.linuxbrew/bin:$HOME/.linuxbrew/sbin:$PATH"
    export MANPATH="$(brew --prefix)/share/man:$MANPATH"
    export INFOPATH="$(brew --prefix)/share/info:$INFOPATH"
+   export HOMEBREW_NO_ANALYTICS=1
+   export HOMEBREW_MAKE_JOBS=5
 fi
 
 # spack
@@ -99,18 +120,20 @@ fi
 
 # pyenv
 [[ -d ~/.pyenv ]] && \
-export PATH=${HOME}/.pyenv/bin:$PATH && \
-eval "$(~/.pyenv/bin/pyenv init -)"
+    export PYENV_ROOT="$HOME/.pyenv"    && \
+    export PATH="$PYENV_ROOT/bin:$PATH" && \
+    eval "$(pyenv init -)"
+
 
 # Ruby in rbenv
 [[ -d ~/.rbenv ]] && \
-export PATH=${HOME}/.rbenv/bin:${PATH} && \
-eval "$(rbenv init -)"
+    export PATH=${HOME}/.rbenv/bin:${PATH} && \
+    eval "$(rbenv init -)"
 
 # goenv
 [[ -d ~/.goenv ]] && \
-export PATH=${HOME}/.goenv/bin:$PATH && \
-eval "$(~/.goenv/bin/goenv init -)"
+    export PATH=${HOME}/.goenv/bin:$PATH && \
+    eval "$(~/.goenv/bin/goenv init -)"
 
 # Golang
 export GOPATH=${HOME}/.go
@@ -118,7 +141,9 @@ export PATH=$GOPATH/bin:$PATH
 
 # Rust
 [[ -d ~/.cargo ]] && \
-export PATH=~/.cargo/bin:$PATH
+    export PATH=~/.cargo/bin:$PATH
+
+export GTAGSLABEL=pygments
 
 
 ########################################
@@ -170,7 +195,7 @@ HISTSIZE=500000
 SAVEHIST=500000
 
 export PAGER=less
-export LESS='-X -i -P ?f%f:(stdin).  ?lb%lb?L/%L..  [?eEOF:?pb%pb\%..]'
+export LESS='-X -i -W -I -R -M -P ?f%f:(stdin).  ?lb%lb?L/%L..  [?eEOF:?pb%pb\%..]'
 export LESSOPEN="| $HOME/etc/lesspipe.sh %s"
 
 ########################################
@@ -304,8 +329,6 @@ function flr ()
 }
 
 
-
-
 #動作中のプロセスから，誰がこのマシンを使っているか調べる
 #alias lu="ps -edf|cut -f 1 -d ' '|sort -u|sed -e '/UID/d;/bin/d;/daemon/d;/nscd/d;/root/d;/ntp/d;/rpc/d;/rpcuser/d;/smmsp/d;/wnn/d;/xfs/d'"
 function lu(){
@@ -318,6 +341,37 @@ function lu(){
 function calc() {
         awk "BEGIN {print $*}"
 }
+
+# INCISIVEで、`assert -summary -final' したlogファイルから、そのサマリだけ抜き出す
+function ext_assert() {
+    if [ $# = 0 ]; then
+        echo "ext_assert <file> [<file> ...]"
+        return
+    fi
+    if [ $# = 1 ]; then
+        cat $1 | sed -n '/^  Disabled Finish Failed   Assertion Name /,/^  Total Assertions/p' | awk '$3!=0'
+        return
+    fi
+
+    for f in $*; do
+        echo $f
+        cat $f | sed -n '/^  Disabled Finish Failed   Assertion Name /,/^  Total Assertions/p' | awk '$3!=0'
+        echo
+    done
+}
+
+function paste_hexdump() {
+    paste =(hexdump -C $1) =(hexdump -C $2)
+}
+function diff_hexdump() {
+    if [ $# = 2 ]; then
+        diff =(hexdump -C $1) =(hexdump -C $2)
+    else
+        diff $1 =(hexdump -C $2) =(hexdump -C $3)
+    fi
+}
+
+
 ##############################
 ## Prompt
 ##############################
@@ -374,3 +428,4 @@ PROMPT=`echo -n '%{\e]2;[${WINDOW}] ${HOSTNAME} : %(5~,%-2~/.../%2~,%~) \a%}\n%{
 ## githubに送らない記述
 ##############################
 [[ -f ~/etc/zshrc.local ]] && source ~/etc/zshrc.local
+

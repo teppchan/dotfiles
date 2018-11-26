@@ -46,9 +46,10 @@ values."
       better-defaults-move-to-end-of-code-first nil)
      git
      ;; org
-     ;; (shell :variables
-     ;;        shell-default-height 30
-     ;;        shell-default-position 'bottom)
+     (shell :variables
+             shell-default-height 30
+             shell-default-position 'bottom
+             shell-default-term-shell "/home/teppei/.linuxbrew/bin/zsh")
      ;; spell-checking
      (syntax-checking :variables syntax-cheking-enable-by-default nil)
      version-control
@@ -125,6 +126,7 @@ values."
    ;; section of the documentation for details on available variables.
    ;; (default 'vim)
    dotspacemacs-editing-style 'hybrid
+   ;; dotspacemacs-editing-style 'vim
    ;; If non nil output loading progress in `*Messages*' buffer. (default nil)
    dotspacemacs-verbose-loading nil
    ;; Specify the startup banner. Default value is `official', it displays
@@ -399,6 +401,59 @@ you should place your code here."
   ;; flycheck
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; (setq flycheck-verilog-verilator-executable "/home/teppei/.linuxbrew/bin/verilator")
+  (flycheck-define-checker textlint
+                           "A linter for Markdown."
+                           :command ("textlint" "--format" "unix" source)
+                           :error-patterns
+                           ((warning line-start (file-name) ":" line ":" column ": "
+                                     (id (one-or-more (not (any " "))))
+                                     (message (one-or-more not-newline)
+                                              (zero-or-more "\n" (any " ") (one-or-more not-newline)))
+                                     line-end))
+                           :modes (text-mode markdown-mode gfm-mode))
+
+  (add-hook 'markdown-mode-hook
+            '(lambda ()
+               (setq flycheck-checker 'textlint)
+               (flycheck-mode 1)))
+
+  (flycheck-def-option-var flycheck-irun-library-directories nil verilog-irun
+    "A list of include directories for irun."
+    :type '(repeat (directory :tag "Library directory"))
+    :safe #'flycheck-stirng-lint-p
+    :package-version '(flycheck . "0.20"))
+  (flycheck-def-option-var flycheck-irun-library-files nil verilog-irun
+    "A list of include files for irun"
+    :type '(repeat (file :tag "Include file"))
+    :safe #'flycheck-string-list-p
+    :package-version '(flycheck . "0.20"))
+  (flycheck-def-option-var flycheck-irun-definitions nil verilog-irun
+    "Additional preprocessor definitions for irun"
+    :type '(repeat (string :tag "Definition"))
+    :safe #'flycheck-string-list-p
+    :package-version '(flycheck . "0.20"))
+
+  (flycheck-define-checker verilog-irun
+    "A linter for Verilog."
+    :command ("/home/teppei/mybin/irun_compile.sh"
+              (option-list "-y " flycheck-irun-library-directories concat)
+              (option-list " " flycheck-irun-library-files concat)
+              (option-list "-define " flycheck-irun-definitions concat)
+              source)
+    :error-patterns
+    ((warning line-start (zero-or-more not-newline) "*W," (zero-or-more not-newline)
+              " (" (file-name) "," line "|" column "): " (message) line-end)
+     (error   line-start (zero-or-more not-newline) "*E," (zero-or-more not-newline)
+              " (" (file-name) "," line "|" column "): " (message) line-end))
+    :modes verilog-mode)
+
+  (add-hook 'verilog-mode-hook
+            '(lambda ()
+               (setq flycheck-checker 'verilog-irun)
+                     (flycheck-mode 1)))
+
+  (add-to-list 'flycheck-checkers 'textlint)
+  (add-to-list 'flycheck-checkers 'verilog-irun)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;editorconfig
@@ -429,10 +484,10 @@ you should place your code here."
         verilog-auto-endcomments         t
         verilog-minimum-comment-distance 40
         verilog-indent-begin-after-if    t
-                                        ;      verilog-auto-lineup              'declarations
+        ; verilog-auto-lineup              'declarations
         verilog-auto-lineup              nil
         verilog-highlight-p1800-keywords nil
-                                        ;      verilog-linter                   "my_lint_shell_command"
+        ; verilog-linter                   "my_lint_shell_command"
         )
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -459,14 +514,6 @@ you should place your code here."
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (bind-key "C-\\" 'skk-mode)
   (setq default-input-method "japanese-skk")
-  (setq skk-sticky-key         [muhenkan])      ;;無変換ボタンで漢字変換切り替えする
-  (setq skk-isearch-start-mode 'latin)  ;; migemo を使うから skk-isearch にはおとなしくしていて欲しい
-  ;;(setq skk-byte-compile-init-file t)   ;;~/.skk にいっぱい設定を書いているのでバイトコンパイルしたい
-  (defvar skk-auto-save-jisyo-interval 600) ;; 10 分放置すると個人辞書が自動的に保存される設定
-  (defun skk-auto-save-jisyo () (skk-save-jisyo))
-  (run-with-idle-timer skk-auto-save-jisyo-interval
-                       skk-auto-save-jisyo-interval
-                       'skk-auto-save-jisyo)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; visual-regexp
@@ -497,7 +544,7 @@ you should place your code here."
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (pos-tip flycheck company yasnippet auto-complete powerline pcre2el spinner markdown-mode hydra dash-functional parent-mode pkg-info epl request gitignore-mode fringe-helper git-gutter+ git-gutter flx magit-popup git-commit treepy graphql with-editor smartparens iedit anzu evil goto-chg undo-tree highlight cdb ccc inf-ruby bind-map bind-key packed anaconda-mode pythonic f dash s helm avy helm-core popup async projectile org-plus-contrib magit ghub helm-gtags ggtags yapfify ws-butler winum which-key volatile-highlights visual-regexp vi-tilde-fringe uuidgen use-package unfill toml-mode toc-org symbol-overlay spaceline smeargle rvm ruby-tools ruby-test-mode rubocop rspec-mode robe restart-emacs rbenv rake rainbow-delimiters racer pyvenv pytest pyenv-mode py-isort popwin pip-requirements persp-mode paradox orgit org-bullets open-junk-file neotree mwim move-text mmm-mode minitest markdown-toc magit-gitflow macrostep lorem-ipsum live-py-mode linum-relative link-hint intero insert-shebang indent-guide hy-mode hungry-delete hlint-refactor hl-todo hindent highlight-parentheses highlight-numbers highlight-indentation helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-hoogle helm-gitignore helm-flx helm-descbinds helm-company helm-c-yasnippet helm-ag haskell-snippets graphviz-dot-mode google-translate golden-ratio go-guru go-eldoc gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gh-md fuzzy flyspell-correct-helm flycheck-rust flycheck-pos-tip flycheck-haskell flx-ido fish-mode fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav editorconfig dumb-jump disaster diminish diff-hl define-word ddskk cython-mode csv-mode company-statistics company-shell company-go company-ghci company-ghc company-cabal company-c-headers company-anaconda column-enforce-mode cmm-mode cmake-mode clean-aindent-mode clang-format chruby cargo bundler auto-yasnippet auto-save-buffers-enhanced auto-highlight-symbol auto-dictionary auto-compile aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell))))
+    (flyspell-correct xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help pos-tip flycheck company yasnippet auto-complete powerline pcre2el spinner markdown-mode hydra dash-functional parent-mode pkg-info epl request gitignore-mode fringe-helper git-gutter+ git-gutter flx magit-popup git-commit treepy graphql with-editor smartparens iedit anzu evil goto-chg undo-tree highlight cdb ccc inf-ruby bind-map bind-key packed anaconda-mode pythonic f dash s helm avy helm-core popup async projectile org-plus-contrib magit ghub helm-gtags ggtags yapfify ws-butler winum which-key volatile-highlights visual-regexp vi-tilde-fringe uuidgen use-package unfill toml-mode toc-org symbol-overlay spaceline smeargle rvm ruby-tools ruby-test-mode rubocop rspec-mode robe restart-emacs rbenv rake rainbow-delimiters racer pyvenv pytest pyenv-mode py-isort popwin pip-requirements persp-mode paradox orgit org-bullets open-junk-file neotree mwim move-text mmm-mode minitest markdown-toc magit-gitflow macrostep lorem-ipsum live-py-mode linum-relative link-hint intero insert-shebang indent-guide hy-mode hungry-delete hlint-refactor hl-todo hindent highlight-parentheses highlight-numbers highlight-indentation helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-hoogle helm-gitignore helm-flx helm-descbinds helm-company helm-c-yasnippet helm-ag haskell-snippets graphviz-dot-mode google-translate golden-ratio go-guru go-eldoc gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gh-md fuzzy flyspell-correct-helm flycheck-rust flycheck-pos-tip flycheck-haskell flx-ido fish-mode fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav editorconfig dumb-jump disaster diminish diff-hl define-word ddskk cython-mode csv-mode company-statistics company-shell company-go company-ghci company-ghc company-cabal company-c-headers company-anaconda column-enforce-mode cmm-mode cmake-mode clean-aindent-mode clang-format chruby cargo bundler auto-yasnippet auto-save-buffers-enhanced auto-highlight-symbol auto-dictionary auto-compile aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

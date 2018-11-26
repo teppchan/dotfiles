@@ -1,5 +1,30 @@
 ;;-*- mode:lisp -*-
 
+;; 無変換ボタンで漢字変換切替えする
+(setq skk-sticky-key  [muhenkan])
+
+;; ";"で漢字変換切替えする
+(setq skk-sticky-key  ";")
+
+;; migemo を使うから skk-isearch にはおとなしくしていて欲しい
+(setq skk-isearch-start-mode 'latin)
+
+;;~/.skk にいっぱい設定を書いているのでバイトコンパイルしたい
+;;(setq skk-byte-compile-init-file t)
+
+;; 10 分放置すると個人辞書が自動的に保存される設定
+(defvar skk-auto-save-jisyo-interval 600)
+(defun skk-auto-save-jisyo () (skk-save-jisyo))
+(run-with-idle-timer skk-auto-save-jisyo-interval
+                     skk-auto-save-jisyo-interval
+                     'skk-auto-save-jisyo)
+
+;;変換候補の表示をポップアップ
+(setq skk-show-candidates-always-pop-to-buffer t)
+
+;;変換候補の表示数
+(setq skk-henkan-show-candidates-rows 2)
+
 ;;送り仮名が厳密に正しい候補を優先して表示
 (setq skk-henkan-strict-okuri-precedence t)
 
@@ -22,6 +47,7 @@
 ;;   Non-nil => エコーエリアに表示する (デフォルト)
 ;;   nil => 別な window に表示する
 ;;(setq skk-annotation-show-as-message nil) ;skk-show-tooltipが優先される
+
 ;; 対応する閉括弧を自動的に挿入する
 (setq skk-auto-insert-paren t)
 

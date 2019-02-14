@@ -99,7 +99,13 @@ bindkey  "^N" down-line-or-beginning-search
 ########################################
 export PATH=/usr/bin:/usr/sbin:/bin:/sbin
 export PATH=${HOME}/usr/bin:${PATH}
-export PATH=${HOME}/usr/emacs26/bin:${PATH}
+if [ -e /etc/redhat-release ]; then
+    if [ `cat /etc/redhat-release | awk '{print $7 >= 7}'` -eq 1 ]; then
+        export PATH=${HOME}/usr/emacs26_rhel7/bin:${PATH}
+    else
+        export PATH=${HOME}/usr/emacs26/bin:${PATH}
+    fi
+fi
 export PATH=${HOME}/usr/fvwm/bin:${PATH}
 export PATH=${HOME}/mybin:$PATH
 export MANPATH=${HOME}/usr/share/man:/usr/share/man
@@ -183,6 +189,8 @@ unsetopt automenu           # メニューで選ぶのうっとおしい
 setopt physical             # 物理的なパスを使用
 setopt nocheckjobs          # 終了時にjobが走ってることを確認しない
 
+#大文字小文字を区別しない
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 
 ########################################
 # 環境変数
@@ -424,7 +432,26 @@ preexec () {
 PROMPT=`echo -n '%{\e]2;[${WINDOW}] ${HOSTNAME} : %(5~,%-2~/.../%2~,%~) \a%}\n%{\e[34m%}%n%{\e[00m%}@%B%{\e[${HOST_COLOUR}m%}${HOSTNAME} %{\e[00m%}%b%S%/ [${disk_left}]%s\n%# '`
 
 
+###############################
+## emacsclient
 ##############################
+function estart() {
+    if ! emacsclient -e 0 > /dev/null 2>&1; then
+        cd > /dev/null 2>&1
+        emacs --daemon
+        cd - > /dev/null 2>&1
+    fi
+}
+
+alias e='emacsclient -nw'
+alias ekill="emacsclient -e '(kill-emacs)'"
+alias erestart="emacsclient -e '(kill-emacs)' && estart"
+
+#export EDITOR='emacsclient -nw'
+
+estart
+
+#############################
 ## githubに送らない記述
 ##############################
 [[ -f ~/etc/zshrc.local ]] && source ~/etc/zshrc.local

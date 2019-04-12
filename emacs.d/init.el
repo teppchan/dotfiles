@@ -1,613 +1,622 @@
-;;init.el
+;;-*- coding:utf-8-unix mode:lisp -*-
 
-;use-packageが無いときにエラーがでないようにする
-;http://qiita.com/kai2nenobu/items/5dfae3767514584f5220
-;; (unless (require 'use-package nil t)
-;;   (defmacro use-package (&rest args)))
-
+;;; emacs -q -lした時に、user-emacs-directoryが変わるように
+;;; ただし、-qするとafter-init-hookが走らない。
 (when load-file-name
   (setq user-emacs-directory (file-name-directory load-file-name)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; el-get
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;http://tarao.hatenablog.com/entry/20150221/1424518030
-(add-to-list 'load-path (locate-user-emacs-file "el-get/el-get"))
-(unless (require 'el-get nil 'noerror)
-  (with-current-buffer
-      (url-retrieve-synchronously
-       "https://raw.githubusercontent.com/dimitri/el-get/master/el-get-install.el")
-    (goto-char (point-max))
-    (eval-print-last-sexp)))
-
-(el-get-bundle use-package)
-(el-get-bundle bind-key)
-;M-x describe-personal-keybindingsで割り当てたキーバインドを表示してくれる
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; package
+;; Package, use-package
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
+(setq package-archives
+      '(("gnu"   . "http://elpa.gnu.org/packages/")
+        ("melpa" . "http://melpa.org/packages/")
+        ("org"   . "http://orgmode.org/elpa/")))
+
+(when (not (package-installed-p 'use-package))
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(setq use-package-enable-imenu-support t)
+(require 'use-package)
+(require 'use-package-ensure)
+(setq use-package-always-ensure t)
+(setq use-package-expand-minimally t)
+(setq use-package-compute-statistics t)
+
+(use-package bind-key)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
+;; Quelpa
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(setq frame-title-format (concat  "%b - emacs@" (system-name)))
+(use-package package-utils)
+(use-package delight)
+(use-package diminish)
+(use-package quelpa-use-package
+  :init
+  (setq quelpa-dir (expand-file-name "quelpa" user-emacs-directory)
+	quelpa-upgrade-p nil
+	quelpa-checkout-melpa-p nil
+	quelpa-update-melpa-p nil
+	quelpa-melpa-recipe-stores nil))
+(quelpa-use-package-activate-advice)
 
-;; default to unified diffs
-(setq diff-switches "-u")
-
-(setq load-path
-      (append
-       (list (expand-file-name "~/.emacs.d/site-lisp")) load-path))
-
-
-(bind-key "C-h"  'backward-delete-char)
-(bind-key "M-?"  'help-for-help)
-(bind-key [f1]   'help-for-help)
-(bind-key "M-g"  'goto-line) ;; M-g で指定行へ移動
-(bind-key "C-c o" 'comment-or-uncomment-region)
-
-(setq mouse-drag-copy-region t) ;; マウスで選択するとコピーする
-(tool-bar-mode 0) ;;toolbarがでない
-
-;;シンボリックリンクをたどって元のパスに展開する
-(setq-default find-file-visit-truename t)
-
-;;;http://meadow-faq.sourceforge.net/meadow-faq-ja_4.html#SEC78
-;; 一行ずつスクロール
-(defun scroll-up-one-line ()
-  (interactive)
-  (scroll-up 1))
-(defun scroll-down-one-line ()
-  (interactive)
-  (scroll-down 1))
-(bind-key "C-," 'scroll-up-one-line)
-(bind-key "C-." 'scroll-down-one-line)
-
-;; TAB はスペース 4 個ぶんを基本
-(setq-default tab-width 4)
-(setq-default indent-tabs-mode nil)
-
-;; モードラインにライン数、カラム数表示
-(line-number-mode 1)
-(column-number-mode 1)
-
-;;大文字小文字区別しない
-(setq read-file-name-completion-ignore-case t)
-(setq completion-ignore-case t)
-
-;;ハイライト
-(setq-default show-trailing-whitespace t) ;;行末の空白を強調
-(show-paren-mode 1)     ;; 対応するカッコを色表示する
-(setq show-paren-style 'mixed) ;;画面内に対応する括弧がある場合は括弧だけを，ない場合は括弧で囲まれた部分をハイライト
-(global-hl-line-mode t) ;;現在行をハイライト
-(transient-mark-mode t) ;;選択範囲をハイライト
-
-;;http://d.hatena.ne.jp/hnw/20140115
- (add-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p)
+;;https://uwabami.github.io/cc-env/Emacs.html
 
 
-;;isearchで、カーソルのある位置の文字を1文字ずつ入力する
-(defun isearch-yank-char ()
-  "Pull next character from buffer into search string."
-  (interactive)
-  (isearch-yank-string
-   (save-excursion
-     (and (not isearch-forward) isearch-other-end
-          (goto-char isearch-other-end))
-     (buffer-substring (point) (1+ (point))))))
-(define-key isearch-mode-map "\C-d" 'isearch-yank-char)
-
-;; Default encoding
-(set-default-coding-systems 'utf-8)
-(set-buffer-file-coding-system 'utf-8)
-(set-terminal-coding-system 'utf-8)
-(set-keyboard-coding-system 'utf-8)
-(prefer-coding-system 'utf-8)
-
-
-;;-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-;; Major mode
-;;-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; STIL
+;; もろもろ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle stil-mode
-  :url "https://www.advantest.com/documents/11348/146462/DfX%20EMACS.txt")
-(use-package stil-mode
+(setq ring-bell-function 'ignore) ;;警告音を鳴らさない
+(blink-cursor-mode 0) ;;カーソルを点滅しない
+(global-hl-line-mode t) ;;カーソル表をハイライトする
+(setq transient-mark-mode t) ;;選択範囲をハイライトする
+(setq read-file-name-completion-ignore-case t) ;;ファイル名の補完で大文字小文字を区別しない
+(setq completion-ignore-case t) ;;補完時に大文字小文字を区別しない
+(setq read-buffer-completion-ignore-case t) ;;バッファ名の補完で大文字小文字を無視する
+(defalias 'yes-or-no-p #'y-or-n-p) ;;yes/noの質問をy/nに統一する
+(setq find-file-visit-truename t) ;;シンボリックリンクをたどって元のパスに展開する
+
+;; Quiet Startup
+(setq inhibit-startup-screen t)
+(setq inhibit-startup-message t)
+(setq inhibit-startup-echo-area-message t)
+(setq initial-scratch-message nil)
+
+;;スクリプトっぽいファイルに実行権限を付ける
+(add-hook 'after-save-hook
+	  'executable-make-buffer-file-executable-if-script-p)
+
+;;起動時間の計測
+(use-package esup)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 文字コード
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(set-language-environment               'utf-8)
+(prefer-coding-system                   'utf-8)
+(set-file-name-coding-system            'utf-8)
+(set-keyboard-coding-system             'utf-8)
+(set-terminal-coding-system             'utf-8)
+(set-default 'buffer-file-coding-system 'utf-8)
+(set-default-coding-systems             'utf-8)
+
+;;文字の調整
+;;https://uwabami.github.io/cc-env/Emacs.html
+(use-package cp5022x
   :config
-  (setq auto-mode-alist (nconc '(("\\.stil$" . stil-mode)) auto-mode-alist))
-  (add-hook 'stil-mode-hook 'turn-on-font-lock)
-  )
+  (set-charset-priority 'ascii
+			'japanese-jisx0208
+			'latin-jisx0201
+                        'katakana-jisx0201
+			'iso-8859-1
+			'unicode)
+  (set-coding-system-priority 'utf-8 'euc-jp 'iso-2022-jp 'cp932))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Verilog
+;; 絵文字
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle veripool/verilog-mode)
-(autoload 'verilog-mode "verilog-mode" "Verilog mode" t )
-(add-to-list 'auto-mode-alist '("\\.[ds]?vh?\\'" . verilog-mode))
-
-(setq verilog-auto-newline nil)
-
-;; User customization for Verilog mode
-(setq verilog-indent-level             2
-      verilog-indent-level-module      2
-      verilog-indent-level-declaration 2
-      verilog-indent-level-behavioral  2
-      verilog-indent-level-directive   1
-      verilog-case-indent              2
-      verilog-auto-newline             nil
-      verilog-auto-indent-on-newline   nil
-      verilog-tab-always-indent        t
-      verilog-auto-endcomments         t
-      verilog-minimum-comment-distance 40
-      verilog-indent-begin-after-if    t
-;      verilog-auto-lineup              'declarations
-      verilog-auto-lineup              nil
-      verilog-highlight-p1800-keywords nil
-;      verilog-linter                   "my_lint_shell_command"
-      )
-
-
-(defun toggle-verilog-auto-lineup ()
-  "toggle verilog-auto-lineup"
-  (interactive)
-  (setq verilog-auto-lineup
-   (case verilog-auto-lineup
-    ('declarations 'nil)
-    ('nil 'declarations)))
-  (message "verilog-auto-lineup: %s" verilog-auto-lineup)
-  )
-
-;;(bind-key "C-c C-0" 'toggle-verilog-auto-lineup)
+(use-package all-the-icons
+  :defer t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; go
+;; キーバインドの説明を表示
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle go)
-(el-get-bundle company-go)
-(use-package go
-  :mode
-  (("\\.go" . go-mode))
-  )
-
-(add-to-list 'exec-path (expand-file-name "~/usr/go/bin/"))
-(use-package company-go)
-
-
-;;-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-;; Minor mode
-;;-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; helm
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;https://qiita.com/jabberwocky0139/items/86df1d3108e147c69e2c
-
-(el-get-bundle helm)
-(use-package helm
-  :bind
-  (("C-c h"   . helm-command-prefix)
-   ("M-x"     . helm-M-x)
-   ("C-x b"   . helm-mini)
-   ("C-x C-f" . helm-find-files)
-   ("C-c y"   . helm-show-kill-ring)
-   ("C-c m"   . helm-man-woman)
-   ("C-c o"   . helm-occur)
-   :map helm-map
-   ("C-h"     . delete-backward-char)
-   ("<tab>"   . helm-execute-persistent-action)
-   ("C-z"     . helm-select-action)
-   :map helm-find-files-map
-   ("C-h"     . delete-backward-char))
+(use-package which-key
+  :diminish which-key-mode
   :config
-  (global-unset-key (kbd "C-x c"))
-  ;(setq ad-return-value             (ad-get-arg 0))
-  (setq helm-M-x-fuzzy-match        t)
-  (setq helm-buffers-fuzzy-matching t)
-  (setq helm-recentf-fuzzy-match    t)
-  (setq helm-split-window-in-side-p t) ; open helm buffer inside current window, not occupy whole other window
-  (setq helm-move-to-line-cycle-in-source t) ; move to end or beginning of source when reaching top or bottom of source
-  (setq helm-ff-search-library-in-sexp        t) ; search for library in 'require' and 'declare-function' sexp
-  (setq helm-scroll-amount                    8) ; scroll 8 lines other window using M-<next>/M-<prior>
-  (setq helm-echo-input-in-header-line        t)
-  (setq helm-ff-file-name-history-use-recentf t)
-  ;(defadvice helm-buffers-sort-transformer (around ignore activate))
-  (setq helm-autoresize-max-height 0)
-  (setq helm-autoresize-min-height 20)
-  (helm-autoresize-mode 1)
-  (helm-mode 1)
-  ; :init
-  ; (add-hook 'helm-minibuffer-set-up-hook)
-  )
+  (which-key-mode 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; whitespace
+;; hydra
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(use-package whitespace
-  :ensure t
+(use-package hydra)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 括弧
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package rainbow-delimiters
+  :hook
+  (prog-mode . rainbow-delimiters-mode))
+
+(use-package paren
+  :ensure nil
+  :hook (after-init . show-paren-mode)
+  :custom-face
+  (show-paren-match ((nil (:background "#44475a" :foreground "#f1fa8c"))))
+  :custom
+  (show-paren-style 'mixed)
+  (show-paren-when-point-inside-paren t)
+  (show-paren-when-point-in-periphery t))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 自動保存
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package auto-save-buffers-enhanced
   :config
-  (setq whitespace-style        '(face tabs tab-mark spaces space-mark))
-  (setq whitespace-space-regexp "\\(\x3000+\\)")
-  (setq whitespace-display-mappings
-        '((space-mark ?\x3000 [?\□])
-          (tab-mark   ?\t   [?\xBB ?\t])
-          ))
-  (global-whitespace-mode 1))
+  (setq auto-save-buffers-enhanced-include-regexps '(".+"))
+  (setq auto-save-buffers-enhanced-exclude-regexps '("^not-save-file" "\\.ignore$"))
+  (auto-save-buffers-enhanced t))
+
+(setq make-backup-files nil) ;;~付きのバックアップファイルを作らない
+(setq auto-save-default nil) ;;#;付きのバックアップファイルを作らない
+(setq auto-save-list-file-prefix nil) ;;auto-save-listを作らない
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; eshell
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package eshell
+  :defer t
+  :custom
+  (eshell-directory-name (expand-file-name ".cache/eshell/" user-emacs-directory)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; projectile
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package projectile
+  :diminish
+  :custom
+  (projectile-known-projects-file (expand-file-name ".cache/projectile-bookmarks.eld" user-emacs-directory))
+  ;:bind
+  ;("M-o p" . projectile-switch-project)
   :config
-  (setq eshell-command-aliases-list
-        (append
-         (list
-          (list "lr" "ls -atlr")
-          (list "la" "ls -a")
-          (list "ll" "ls -la")
-          ))))
+  (projectile-mode +1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; SKK
+;; snippet
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle ddskk)
-(use-package skk
-  :config
-  (setq skk-tut-file           "~/.emacs.d/el-get/ddskk/etc/SKK.tut")
-  (setq skk-sticky-key         [muhenkan])      ;;無変換ボタンで漢字変換切り替えする
-  (setq skk-isearch-start-mode 'latin)  ;; migemo を使うから skk-isearch にはおとなしくしていて欲しい
-  ;;(setq skk-byte-compile-init-file t)   ;;~/.skk にいっぱい設定を書いているのでバイトコンパイルしたい
-  (defvar skk-auto-save-jisyo-interval 600) ;; 10 分放置すると個人辞書が自動的に保存される設定
-  (defun skk-auto-save-jisyo () (skk-save-jisyo))
-  (run-with-idle-timer skk-auto-save-jisyo-interval
-                       skk-auto-save-jisyo-interval
-                       'skk-auto-save-jisyo)
-  :bind
-  ("C-x C-j" . skk-mode)
-  ("C-\\"    . skk-mode)
-  )
+(use-package yasnippet
+  :diminish yas-minor-mode
+  :custom (yas-snippet-dirs '((expand-file-name "snippets" user-emacs-directory)))
+  :hook (after-init . yas-global-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; migemo
+;; abbrev
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle migemo)
-(setq migemo-command          "cmigemo")
-(setq migemo-options          '("-q" "--emacs"))
-(setq migemo-coding-system    'utf-8)
-;(setq migemo-dictionary       "~/usr/share/migemo/utf-8/migemo-dict")
-(setq migemo-dictionary       "~/.linuxbrew/share/migemo/utf-8/migemo-dict")
-(setq migemo-user-dictionary  nil)
-(setq migemo-regex-dictionary nil)
-(load-library "migemo")
-(migemo-init)
-
-;; (use-package migemo
-;;   :ensure t
-;;   :config
-;;   (setq migemo-command          "cmigemo")
-;;   (setq migemo-options          '("-q" "--emacs"))
-;;   (setq migemo-coding-system    'utf-8-unix)
-;;   (setq migemo-dictionary       "~/.linuxbrew/share/migemo/utf-8/migemo-dict")
-;;   (setq migemo-user-dictionary  nil)
-;;   (setq migemo-regex-dictionary nil)
-;;   (migemo-init)
-;;   )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; expand region
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle expand-region)
-(use-package expand-region
-  :bind (("C-@"   . er/expand-region)     ;;リージョンを広げる
-         ("C-M-@" . er/contract-region))) ;;リージョンを狭める
+(use-package abbrev
+  :ensure nil
+  :custom
+  (abbrev-file-name (expand-file-name ".cache/abbrev_defs" user-emacs-directory))
+  (save-abbrevs 'silently))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; visual-regexp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle visual-regexp)
 (use-package visual-regexp
-  :bind
-  ("M-%" . vr/query-replace)
-  )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; undo-tree
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle undo-tree)
-(use-package undo-tree
-  :bind
-  ("M-/" . undo-tree-redo)
-  :config
-  (global-undo-tree-mode t)
-  )
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; auto-save-buffers-enhanced
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle auto-save-buffers-enhanced)
-(use-package auto-save-buffers-enhanced
-  :bind
-  ("C-x a s" . auto-save-buffers-enhanced-toggle-activity)
-  :config
-  (progn
-    (setq auto-save-buffers-enhanced-include-regexps '(".+"))
-    (setq auto-save-buffers-enhanced-exclude-regexps '("^not-save-file" "\\.ignore$"))))
-
-(auto-save-buffers-enhanced t)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; aspell
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;http://keisanbutsuriya.hateblo.jp/entry/2015/02/10/152543
-(setq-default ispell-program-name "aspell")
-(eval-after-load "ispell"
-  '(add-to-list 'ispell-skip-region-alist '("[^\000-\377]+")))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; flyspell
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;http://keisanbutsuriya.hateblo.jp/entry/2015/02/10/152543
-;; (el-get-bundle flyspell)
-;; (mapc
-;;  (lambda (hook)
-;;    (add-hook hook 'flyspell-prog-mode))
-;;  '(
-;;    c-mode-common-hook                 ;; ここに書いたモードではコメント領域のところだけ
-;;    emacs-lisp-mode-hook               ;; flyspell-mode が有効になる
-;;    ;; verilog-mode-hook
-;;    ))
-;; (mapc
-;;  (lambda (hook)
-;;    (add-hook hook
-;;              '(lambda () (flyspell-mode 1))))
-;;  '(
-;;    yatex-mode-hook     ;; ここに書いたモードでは
-;;    ;; flyspell-mode が有効になる
-;;    ))
-
-;; (global-set-key [?\C-,] 'flyspell-goto-next-error)
-;; (global-set-key [?\C-.] 'flyspell-auto-correct-word)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; flycheck
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;(require 'flycheck)
-;;(add-hook 'verilog-mode-hook 'flycheck-mode)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; comment-dwin2
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; http://emacs.rubikitch.com/comment-dwim-2/
-;; https://github.com/remyferre/comment-dwim-2
-;; (el-get-bundle comment-dwim-2)
-(use-package comment-dwim-2
-  :ensure t
-  :bind (("M-;" . comment-dwim-2))
-  :config
-  (progn
-    (setq comment-dwim-2--inline-comment-behavior 'reindent-comment) ;;2回目のM-;で、コメントをインデントする
-    ))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; auto-complete
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;http://keisanbutsuriya.hateblo.jp/entry/2015/02/08/175005
-;;http://dev.ariel-networks.com/wp/documents/aritcles/emacs/part9
-
-;; (el-get-bundle auto-complete)
-;; (ac-config-default)
-;; (setq ac-use-menu-map t) ;;補完メニュー表示時に、C-n/C-pで補完候補選択
-;; (ac-set-trigger-key "TAB")     ;;自分のタイミングで補完開始
-
-;; ;;自動的に有効にならないモードを追加する
-;; (add-to-list 'ac-modes 'text-mode)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; company
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;http://qiita.com/sune2/items/b73037f9e85962f5afb7
-
-;(el-get-bundle company)
-(use-package company
-  :ensure t
-  :config
-  (global-company-mode) ;全バッファで使用
-  )
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; tail
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;https://www.emacswiki.org/emacs/TailEl
-;;http://dev.ariel-networks.com/wp/documents/aritcles/emacs/part11
-;(require 'tail)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; itail
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;http://emacs.rubikitch.com/itail/
-(el-get-bundle itail)
-(use-package itail
-  )
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Graphvis
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle graphviz-dot-mode)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Markdown
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle elpa:markdown-mode)
-(use-package markdown-mode
-  :commands (markdown-mode gfm-mode)
-  :mode (("README\\.md\\'" . gfm-mode)
-         ("\\.md\\'"       . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode))
-  :config
-  (setq markdown-command "pandoc -s --self-contained -t html5 -c /home/teppei/.pandoc/github.css")
-  ;;(setq markdown-command "pandoc -s --self-contained -t html5 -c https://gist.github.com/andyferra/2554919.js")
-  )
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; linum-mode
-;; http://d.hatena.ne.jp/tm_tn/20110605/1307238416
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle elpa:hlinum)
-
-;; M-x linum-mode
-;; で、左に行番号を表示する。
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; cmake-mode
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle cmake-mode)
-(use-package cmake-mode-abbrev-table
-  :mode (("CMakeLists\\.txt\\'" . cmake-mode))
-  )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ivy
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; https://qiita.com/blue0513/items/c0dc35a880170997c3f5
-;; (use-package ivy
-;;   :ensure t
-;;   :config
-;;   (ivy-mode t)
-;;   (setq ivy-use-virtual-buffers t)
-;;   (setq enable-recursive-minibuffers t)
-;;   (setq ivy-height 30) ;; minibufferのサイズを拡大
-;;   (setq ivy-extra-directories nil)
-;;   (setq ivy-re-builders-alist '((t . ivy--regex-plus))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; counsel
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; https://qiita.com/blue0513/items/c0dc35a880170997c3f5
-;(el-get-bundle counsel)
-;; (use-package counsel
-;;   :ensure t
-;;   :config
-;;    (global-set-key (kbd "M-x")     'counsel-M-x)
-;;    (global-set-key (kbd "C-x C-f") 'counsel-find-file)
-;;    (defvar counsel-find-file-ignore-regexp (regexp-opt '("./" "../")))
-;;   )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; recentf
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;https://qiita.com/blue0513/items/c0dc35a880170997c3f5
-;; 余分なメッセージを削除しておきましょう
-;; https://qiita.com/blue0513/items/c0dc35a880170997c3f5
-(defmacro with-suppressed-message (&rest body)
-  "Suppress new messages temporarily in the echo area and the `*Messages*' buffer while BODY is evaluated."
-  (declare (indent 0))
-  (let ((message-log-max nil))
-    `(with-temp-message (or (current-message) "") ,@body)))
-
-(use-package recentf
-  :ensure t
-  :init
-  (el-get-bundle recentf-ext)
-  :config
-  (setq recentf-save-file "~/.emacs.d/.recentf")
-  (setq recentf-max-saved-items 200)   ;;recentfに保存するファイル数
-  (setq recentf-exclude '(".recentf")) ;;.recentfは含めない
-  (setq recentf-auto-cleanup 'never)   ;;保存する内容を整理
-  (run-with-idle-timer 30 t '(lambda () (with-suppressed-message (recentf-save-list))))
-  ;(require 'recentf-ext)
-  (define-key global-map [(super r)] 'counsel-recentf) ;; counselにおまかせ！
-  )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; dumb-jump
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;https://qiita.com/blue0513/items/c0dc35a880170997c3f5
-(use-package dumb-jump
-  :ensure t
-  :config
-;  (setq dumb-jump-selector 'ivy)
-  (setq dumb-jump-force-searcher 'ag)
-;  (setq dumb-jump-use-visible-window nil)
-  (setq dumb-jump-default-project "")
-;  (define-key global-map [(super d)]       'dump-jump-go)
-;  (define-key global-map [(super shift d)] 'dumb-jump-back)
-  (dumb-jump-mode)
+  ;:bind
+  ;("M-%" . vr/query-replace)
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; symbol-overlay
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package symbol-overlay
-  :ensure t
-  :config
-  (add-hook 'prog-mode-hook #'symbol-overlay-mode)
-  (add-hook 'markdown-mode-hook #'symbol-overlay-mode)
-  (global-set-key (kbd "M-i") 'symbol-overlay-put)
-  (define-key symbol-overlay-map (kbd "p") 'symbol-overlay-jump-prev) ;; 次のシンボルへ
-  (define-key symbol-overlay-map (kbd "n") 'symbol-overlay-jump-next) ;; 前のシンボルへ
-  (define-key symbol-overlay-map (kbd "C-g") 'symbol-overlay-remove-all) ;; ハイライトキャンセル
-  )
+  :hook
+  (prog-mode     . symbol-overlay-mode)
+  (markdown-mode . symbol-overlay-mode)
+  :bind
+  ("M-i" . symbol-overlay-put)
+  ("C-g" . symbol-overlay-remove-all))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; neotree
+;; 空白の強調表示
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package whitespace
+  :ensure nil
+  :diminish global-whitespace-mode
+  :config
+  (setq whitespace-line-column 72
+        whitespace-style '(face              ; faceを使って視覚化する．
+                           trailing          ; 行末の空白を対象とする．
+                           tabs              ; tab
+                           spaces            ; space
+                           )
+        whitespace-display-mappings '((space-mark ?\u3000 [?\□])
+                                      (tab-mark ?\t [?\u00BB ?\t] [?\\ ?\t]))
+        whitespace-space-regexp "\\(\u3000+\\)"
+        whitespace-global-modes '(not
+                                  eww-mode
+                                  term-mode
+                                  eshell-mode
+                                  org-agenda-mode
+                                  calendar-mode)
+        )
+  (global-whitespace-mode 1))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TODO, FIXMEをハイライトする
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package hl-todo
+  :config
+  (global-hl-todo-mode))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; history
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package savehist
+  :ensure nil
+  :hook (after-init . savehist-mode)
+  :custom
+  (savehist-file (expand-file-name ".cache/history" user-emacs-directory)))
+
+(setq undo-limit 200000
+      undo-strong-limit 260000)
+(setq history-length t  ; t で無制限
+      )
+
+;;以前開いたときのカーソル位置を復元する
+(use-package saveplace
+  :ensure nil
+  :hook (after-init . save-place-mode)
+  :custom
+  (save-place-file (expand-file-name ".cache/saved-places" user-emacs-directory)))
+
+(use-package recentf-ext
+  :hook (after-init . recentf-mode)
+  :custom
+  (recentf-save-file (expand-file-name ".cache/recentf" user-emacs-directory))
+  (recentf-max-saved-items 200000000)
+  (recentf-auto-cleanup 'never)
+  (recentf-exclude '((expand-file-name package-user-dir)
+		     ".cache"
+		     "cache"
+		     "recentf"
+		     "COMMIT_EDITMSG\\'")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; redo/undo
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package undo-tree
+  ;;:bind ("M-/" . undo-tree-redo)
+  :config
+  (global-undo-tree-mode t))
+
+;;履歴を永続化
+(use-package undohist
+  :diminish
+  :hook (after-init . undohist-initialize)
+  :custom
+  (undohist-ignored-files '("/tmp" "/EDITMSG" "/elpa"))
+  (undohist-directory (expand-file-name ".cache/undohist" user-emacs-directory)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ido
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (use-package ido
+;;   :ensure nil
+;;   :bind
+;;   (("C-x C-f" . ido-find-file)
+;;    ("C-x C-d" . ido-dired)
+;;    ("C-x b"   . ido-switch-buffer)
+;;    ("C-x C-b" . ido-switch-buffer))
+;;   :config
+;;   (ido-mode t)
+;;   (ido-ubiquitous-mode 1))
+;;
+;; (use-package flx-ido
+;;   :config
+;;   (flx-ido-mode 1)
+;;   (setq flx-ido-use-faces nil
+;; 	flx-ido-threshold 10000))
+;;
+;; ;; (use-package ido-grid
+;; ;;   :quelpa (ido-grid :fetcher github :repo "larkery/ido-grid.el")
+;; ;;   :config
+;; ;;   (setq ido-grid-enabled nil
+;; ;; 	ido-grid-start-small nil
+;; ;; 	ido-grid-rows 0.220
+;; ;; 	ido-grid-max-column 1
+;; ;; 	ido-grid-indent 1
+;; ;; 	ido-grid-column-padding 1
+;; ;; 	ido-grid-bind-keys t)
+;; ;;   (ido-grid-enable))
+;;
+;; (use-package ido-vertical-mode
+;;   :config
+;;   (setq ido-max-window-height 0.75
+;; 	ido-enable-flex-matching t
+;; 	ido-vertical-define-keys 'C-n-and-C-p-only)
+;;   (ido-vertical-mode 1))
+;;
+;;
+;; (use-package ido-completing-read+)
+;;
+;; (use-package smex
+;;   :bind (("M-x" . smex))
+;;   :config
+;;   (setq smex-auto-update t
+;; 	smex-prompt-string "smex: "
+;; 	smex-flex-matching t)
+;;   (smex-initialize))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; posframe
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;(use-package posframe)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ivy
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package counsel
+  :diminish ivy-mode counsel-mode
+  :custom
+  ;(ivy-use-virtual-buffers t)
+  ;(enable-recursive-minibuffers t)
+  ;(ivy-height 10)
+  (swiper-include-line-number-in-search t) ;;line-numberでも検索できる
+  (ivy-count-format "(%d/%d) ")
+  :hook
+  (after-init . ivy-mode)
+  (ivy-mode   . counsel-mode)
+  :bind
+  ("C-s"      . swiper))
+
+(use-package flx)
+
+(use-package amx
+  :custom
+  (amx-save-file (expand-file-name ".cache/amx-items" user-emacs-directory)))
+
+(use-package counsel-projectile
+  :config (counsel-projectile-mode 1))
+
+(use-package ivy-rich
+  :config
+  (ivy-rich-mode 1))
+
+;;(use-package ivy-posframe
+;;  :after ivy
+;;  :custom-face
+;;  (ivy-posframe ((t (:background "#282a36"))))
+;;  :custom
+;;  (ivy-display-function #'ivy-posframe-display-at-frame-center)
+;;  :config
+;;  (ivy-posframe-enable))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; anzu
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;(use-package anzu
+;;  :diminish
+;;  :hook (after-init . global-anzu-mode)
+;;  :config
+;;  (global-set-key [remap query-replace]        'anzu-query-replace)
+;;  (global-set-key [remap query-replace-regexp] 'anzu-query-replace-regexp))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; neo-tree
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package neotree
-  :ensure t
-  :config
-  (setq neo-theme 'ascii) ;; icon, classic等もあるよ！
-  (setq neo-persist-show t) ;; delete-other-window で neotree ウィンドウを消さない
-  (setq neo-smart-open t) ;; neotree ウィンドウを表示する毎に current file のあるディレクトリを表示する
-  (setq neo-smart-open t)
-;  (global-set-key "\C-o" 'neotree-toggle)
+  :custom
+  (net-theme 'icon)
+  (neo-persist-show t) ;;delete-other-windowでウィンドウを消さない
+  (neo-smart-open t)   ;;neotreeウィンドウを表示する毎にcurrent fileのあるディレクトリを表示する
+  (neo-show-hidden-files t) ;;隠しファイルを表示する
   )
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; which-key
+;; ispell
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(el-get-bundle which-key)
-(use-package which-key
-  ;:ensure t
+(use-package ispell
+  :ensure nil
+  :init
+  (setq-default ispell-program-name "aspell")
   :config
-  (which-key-mode))
+  (add-to-list 'ispell-skip-region-alist '("[^\000-\377]+")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; フォントとウィンドウサイズ
+;; editorconfig
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(setq initial-frame-alist
-      (append (list
-               '(width . 100)
-               '(height . 48)
-               '(top . 30)
-               ;'(left . 2000)
-               '(left . 20)
-               )
-              initial-frame-alist))
-(setq default-frame-alist initial-frame-alist)
+(use-package editorconfig
+  :config
+  (editorconfig-mode 1))
 
-(add-to-list 'default-frame-alist '(font . "Source Han Code JP N-10"))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; markdown-mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package markdown-mode
+  :custom
+  (markdown-hide-markup        nil)
+  (markdown-bold-underscore    t)
+  (markdown-italic-underscore  t)
+  (markdown-header-scaling     t)
+  (markdown-indent-function    t)
+  (markdown-enable-match       t)
+  (markdown-hide-urls          nil)
+  :mode "\\.md\\'")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; company
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package company
+  :defer t
+  :diminish company-mode
+  :defines
+  (company-dabbrev-ignore-case company-dabbrev-downcase)
+  :custom
+  (company-idle-delay 0)
+  (company-echo-delay 0)
+  ;;:hook (after-init . global-company-mode)
+  )
+
+(use-package company-box
+  :defer t
+  :diminish
+  :hook (company-mode . company-box-mode))
+
+(use-package company-quickhelp
+  :defer t
+  :defines company-quickhelp-delay
+  :hook    (global-company-mode . company-quickhelp-mode)
+  :custom  (company-quickhelp-delay 0.8))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; UI
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package doom-themes
+  :custom
+  (doom-themes-enable-italic t)
+  (doom-themes-enable-bold t)
+  :custom-face
+  (doom-modeline-bar ((t (:background "#6272a4"))))
+  :config
+  (load-theme 'doom-dracula t)
+  (doom-themes-neotree-config)
+  (doom-themes-org-config))
+
+(use-package doom-modeline
+  :custom
+  (doom-modeline-buffer-file-name-style 'truncate-with-project)
+  (doom-modeline-icon            t)
+  (doom-modeline-major-mode-icon nil)
+  (doom-modeline-minor-modes     nil)
+  :hook (after-init . doom-modeline-mode)
+  :config
+  ;(line-number-mode 0)
+  ;(column-number-mode 0)
+  (doom-modeline-def-modeline 'main
+    '(bar workspace-number window-number evil-state god-state ryo-modal xah-fly-keys matches buffer-info remote-host buffer-position parrot selection-info)
+    '(misc-info persp-name lsp github debug minor-modes input-method major-mode process vcs checker)))
+
+;;起動画面
+(use-package dashboard
+  :diminish
+  (dashboard-mode page-break-lines-mode)
+  :custom
+  (dashboard-startup-banner 2)
+  (dashboard-items '((recents . 15)
+		     (projects . 5)))
+  :hook
+  (after-init . dashboard-setup-startup-hook))
+
+;;画面の左に行番号を表示する
+(use-package display-line-numbers
+  :ensure nil
+  :hook
+  (prog-mode . display-line-numbers-mode))
+
+(use-package volatile-highlights
+  :diminish
+  :hook (after-init . volatile-highlights-mode)
+  :custom-face
+  (vhl/default-face ((nil (:foreground "#FF333" :background "#FFCDCD")))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; load files
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(load (concat user-emacs-directory "+window.el"))
+(load (concat user-emacs-directory "+org.el"))
+(load (concat user-emacs-directory "+japanese.el"))
+(load (concat user-emacs-directory "+flycheck.el"))
+(load (concat user-emacs-directory "+verilog.el"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; evil
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package evil
+  :hook (after-init . evil-mode)
+  :bind
+  (("C-["     . evil-normal-state)
+   ("C-g"     . evil-normal-state)
+   :map evil-visual-state-map
+   ("TAB"     . indent-for-tab-command)
+   :map evil-normal-state-map
+   ("SPC SPC" . counsel-M-x)
+   ("TAB"     . indent-for-tab-command)
+   ("SPC q r" . restart-emacs)
+   ("SPC q q" . kill-emacs)
+   ;;file
+   ("SPC f f" . find-file)
+   ("SPC f n" . neotree-toggle)
+   ;;buffer
+   ("SPC b b" . switch-to-buffer)
+   ("SPC b k" . kill-this-buffer)
+   ;;undo-tree
+   ("u"       . undo-tree-undo)
+   ("SPC u r" . undo-tree-redo)
+   ("SPC u v" . undo-tree-visualize)
+   ;;window
+   ("SPC 1"   . delete-other-windows)
+   ("SPC 0"   . delete-window)
+   ;;symbol-overlay
+   ("SPC s i" . symbol-overlay-put)
+   ("SPC s c" . symbol-overlay-remove-all)
+   ;;org-mode
+   ("SPC o A" . org-agenda)
+   ("SPC o p" . org-pomodoro)
+   ("SPC X"   . org-capture)
+   :map evil-insert-state-map
+   ("C-g"     . evil-normal-state)
+   ))
+
+
+;;https://ladicle.com/post/config/
+;;https://uwabami.github.io/cc-env/Emacs.html
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(abbrev-file-name "/home/teppei/.emacs.d/.cache/abbrev_defs")
+ '(amx-save-file "/home/teppei/.emacs.d/.cache/amx-items")
+ '(avy-migemo-function-names
+   (quote
+    (swiper--add-overlays-migemo
+     (swiper--re-builder :around swiper--re-builder-migemo-around)
+     (ivy--regex :around ivy--regex-migemo-around)
+     (ivy--regex-ignore-order :around ivy--regex-ignore-order-migemo-around)
+     (ivy--regex-plus :around ivy--regex-plus-migemo-around)
+     ivy--highlight-default-migemo ivy-occur-revert-buffer-migemo ivy-occur-press-migemo avy-migemo-goto-char avy-migemo-goto-char-2 avy-migemo-goto-char-in-line avy-migemo-goto-char-timer avy-migemo-goto-subword-1 avy-migemo-goto-word-1 avy-migemo-isearch avy-migemo-org-goto-heading-timer avy-migemo--overlay-at avy-migemo--overlay-at-full)))
+ '(company-echo-delay 0 t)
+ '(company-idle-delay 0 t)
+ '(company-quickhelp-delay 0.8 t)
+ '(doom-themes-enable-bold t)
+ '(doom-themes-enable-italic t)
+ '(eshell-directory-name "/home/teppei/.emacs.d/.cache/eshell/" t)
+ '(ivy-count-format "(%d/%d) ")
+ '(markdown-bold-underscore t t)
+ '(markdown-enable-match t t)
+ '(markdown-header-scaling t t)
+ '(markdown-hide-markup nil t)
+ '(markdown-hide-urls nil t)
+ '(markdown-indent-function t t)
+ '(markdown-italic-underscore t t)
+ '(neo-persist-show t t)
+ '(neo-show-hidden-files t)
+ '(neo-smart-open t)
+ '(net-theme (quote icon) t)
  '(package-selected-packages
    (quote
-    (neotree symbol-overlay which-key helm skk migemo ddskk dumb-jump counsel-mode counsel markdown-mode itail go company-go comment-dwim-2 bind-key auto-save-buffers-enhanced))))
+    (yasnippet which-key volatile-highlights visual-regexp verilog-mode veri-kompass undohist symbol-overlay recentf-ext rainbow-delimiters quelpa-use-package pangu-spacing package-utils org-pomodoro org-bullets neotree markdown-mode japanese-holidays ivy-rich hydra hl-todo flycheck flx evil esup editorconfig doom-themes doom-modeline diminish delight ddskk dashboard cp5022x counsel-projectile company-quickhelp company-box avy-migemo auto-save-buffers-enhanced amx)))
+ '(projectile-known-projects-file "/home/teppei/.emacs.d/.cache/projectile-bookmarks.eld")
+ '(recentf-auto-cleanup (quote never))
+ '(recentf-exclude
+   (quote
+    ((expand-file-name package-user-dir)
+     ".cache" "cache" "recentf" "COMMIT_EDITMSG\\'")))
+ '(recentf-max-saved-items 200000000)
+ '(recentf-save-file "/home/teppei/.emacs.d/.cache/recentf")
+ '(safe-local-variable-values (quote ((flycheck-mode))))
+ '(save-abbrevs (quote silently))
+ '(save-place-file "/home/teppei/.emacs.d/.cache/saved-places")
+ '(savehist-file "/home/teppei/.emacs.d/.cache/history")
+ '(show-paren-style (quote mixed))
+ '(show-paren-when-point-in-periphery t)
+ '(show-paren-when-point-inside-paren t)
+ '(swiper-include-line-number-in-search t)
+ '(undohist-directory "/home/teppei/.emacs.d/.cache/undohist")
+ '(undohist-ignored-files (quote ("/tmp" "/EDITMSG" "/elpa")))
+ '(yas-snippet-dirs (quote ("~/.emacs.d/snippets"))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(markdown-code-face ((t (:family "Source Han Code JP N-10"))))
- '(markdown-pre-face ((t (:family "Source Han Code JP N-10")))))
+ '(doom-modeline-bar ((t (:background "#6272a4"))))
+ '(show-paren-match ((nil (:background "#44475a" :foreground "#f1fa8c"))))
+ '(vhl/default-face ((nil (:foreground "#FF333" :background "#FFCDCD")))))

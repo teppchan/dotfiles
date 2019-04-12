@@ -53,3 +53,12 @@
 
 ;; 動的補完
 (setq skk-dcomp-activate t)
+
+(setq skk-latin-mode-string "[_A]")
+(setq skk-hiragana-mode-string "[あ]")
+(setq skk-katakana-mode-string "[ア]")
+(setq skk-jisx0208-latin-mode-string "[Ａ]")
+(setq skk-jisx0201-mode-string "[_ｱ]")
+(setq skk-abbrev-mode-string "[aA]")
+(setq skk-indicator-use-cursor-color nil)
+(setq skk-status-indicator 'left)
